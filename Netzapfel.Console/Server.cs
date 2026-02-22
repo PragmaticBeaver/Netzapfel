@@ -8,8 +8,8 @@ using System.Text;
 public static class Server
 {
   private const int maxSimultaneousConnections = 20;
-  private static Semaphore semaphore = new Semaphore(maxSimultaneousConnections, maxSimultaneousConnections);
-  private static HttpListener listener;
+  private static readonly Semaphore semaphore = new Semaphore(maxSimultaneousConnections, maxSimultaneousConnections);
+  private static readonly HttpListener listener;
 
   static Server()
   {
