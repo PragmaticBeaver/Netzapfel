@@ -45,15 +45,30 @@ public static class Server
     return listener;
   }
 
+  private static void Log(HttpListenerRequest request)
+  {
+    var logEntry = $"{request.RemoteEndPoint} {request.HttpMethod} /{request?.Url?.AbsoluteUri}";
+    Console.WriteLine(logEntry);
+  }
+
   private static async void StartConnectionListener(HttpListener listener)
   {
     var context = await listener.GetContextAsync();
     // release semaphore which allows another listener to be initialized/started
     semaphore.Release();
+    Log(context.Request);
 
-    Console.WriteLine(context.ToString());
+    string response = $@"
+    <html>
+      <head>
+        <meta http-equiv='content-type' content='text/html; charset=utf-8'/>
+      </ head>
+      <body>
+        <p>Hello Browser, this is Netzapfel!</p>
+      </body>
+    </html>";
 
-    var response = "Hello Browser, this is Netzapfel!";
+    // var response = "Hello Browser, this is Netzapfel!";
     var encodedResponse = Encoding.UTF8.GetBytes(response);
     context.Response.ContentLength64 = encodedResponse.Length;
     context.Response.OutputStream.Write(encodedResponse, 0, encodedResponse.Length);
