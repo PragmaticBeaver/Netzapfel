@@ -8,6 +8,7 @@ using System.Text;
 public static class Server
 {
   private const int maxSimultaneousConnections = 20;
+  private const int port = 8080;
   private static readonly Semaphore semaphore = new Semaphore(maxSimultaneousConnections, maxSimultaneousConnections);
   private static readonly HttpListener listener;
 
@@ -33,11 +34,11 @@ public static class Server
   private static HttpListener InitializeListener(List<IPAddress> localIps)
   {
     var listener = new HttpListener();
-    listener.Prefixes.Add("http://localhost/");
+    listener.Prefixes.Add($"http://localhost:{port}/");
 
     localIps.ForEach(ip =>
     {
-      var url = $"http://{ip}/";
+      var url = $"http://{ip}:{port}/";
       Console.WriteLine($"listening to {url}");
       listener.Prefixes.Add(url);
     });
@@ -88,9 +89,6 @@ public static class Server
 
   /// <summary>
   /// Listen to connections on a separate worker thread.
-  /// WARNING; app/user needs permission to listen!
-  /// linux; dev workaround => use sudo when starting application
-  /// windows; configure using "netsh"
   /// </summary>
   private static void StartListening(HttpListener listener)
   {
