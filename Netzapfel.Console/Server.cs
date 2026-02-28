@@ -3,6 +3,8 @@ namespace Netzapfel.Console;
 using System;
 using System.Net;
 using System.Net.Sockets;
+using System.Reflection;
+using System.Text;
 
 public static class Server
 {
@@ -10,7 +12,7 @@ public static class Server
   private const int port = 8080;
   private static readonly Semaphore semaphore = new Semaphore(maxSimultaneousConnections, maxSimultaneousConnections);
   private static readonly HttpListener listener;
-  private static Router router = new Router();
+  private static Router? router;
 
   static Server()
   {
@@ -18,8 +20,27 @@ public static class Server
     listener = InitializeListener(localIps);
   }
 
-  public static void Start()
+  public static string GetWebsiteDir()
   {
+    var websitePath = Assembly.GetExecutingAssembly().Location;
+    Console.WriteLine($"assembly-path: {websitePath}");
+    // get projekt root-dir
+    var path = websitePath;
+    for (int i = 0; i < 5; i++)
+    {
+      path = Utils.SubstringBeforeLastIndex(path, '/');
+    }
+    Console.WriteLine($"root-dir: {path}");
+
+    return $"{path}/Website";
+  }
+
+  public static void Start(string websitePath)
+  {
+    router = new Router
+    {
+      WebsitePath = websitePath
+    };
     StartListening(listener);
   }
 
@@ -52,20 +73,6 @@ public static class Server
     Console.WriteLine(logEntry);
   }
 
-  private static string SubstringBefore(string value, char separator)
-  {
-    var index = value.IndexOf(separator);
-    var result = index > 0 ? value[..index] : value;
-    return result;
-  }
-
-  private static string SubstringAfter(string value, char separator)
-  {
-    var index = value.IndexOf(separator);
-    var result = index > 0 ? value[index..] : value;
-    return result;
-  }
-
   private static Dictionary<string, string> GetKeyValuePairs(string data, Dictionary<string, string>? pairs = null)
   {
     pairs ??= []; // compound assignment
@@ -78,8 +85,8 @@ public static class Server
     var keyValues = data.Split('&');
     foreach (var kv in keyValues)
     {
-      var paramKey = SubstringBefore(kv, '=');
-      var paramValue = SubstringAfter(kv, '=');
+      var paramKey = Utils.SubstringBeforeLastIndex(kv, '=');
+      var paramValue = Utils.SubstringAfterFirstIndex(kv, '=');
       pairs.Add(paramKey, paramValue);
     }
     return pairs;
@@ -92,31 +99,31 @@ public static class Server
     semaphore.Release();
     Log(context.Request);
 
-    var request = context.Request;
-    var rawUrl = request.RawUrl ?? "";
-    var path = SubstringBefore(rawUrl, '?');
-    var method = request.HttpMethod ?? "";
-    var paramString = SubstringAfter(rawUrl, '?');
-    var kvParams = GetKeyValuePairs(paramString);
+    // var request = context.Request;
+    // var rawUrl = request.RawUrl ?? "";
+    // var path = SubstringBeforeLastIndex(rawUrl, '?');
+    // var method = request.HttpMethod ?? "";
+    // var paramString = SubstringAfterFirstIndex(rawUrl, '?');
+    // var kvParams = GetKeyValuePairs(paramString);
 
-    router.Route(method, path, paramString);
+    // router.Route(method, path, paramString);
 
 
-    // string response = $@"
-    // <html>
-    //   <head>
-    //     <meta http-equiv='content-type' content='text/html; charset=utf-8'/>
-    //   </ head>
-    //   <body>
-    //     <p>Hello Browser, this is Netzapfel!</p>
-    //   </body>
-    // </html>";
+    string response = $@"
+    <html>
+      <head>
+        <meta http-equiv='content-type' content='text/html; charset=utf-8'/>
+      </ head>
+      <body>
+        <p>Hello Browser, this is Netzapfel!</p>
+      </body>
+    </html>";
 
-    // // var response = "Hello Browser, this is Netzapfel!";
-    // var encodedResponse = Encoding.UTF8.GetBytes(response);
-    // context.Response.ContentLength64 = encodedResponse.Length;
-    // context.Response.OutputStream.Write(encodedResponse, 0, encodedResponse.Length);
-    // context.Response.OutputStream.Close();
+    // var response = "Hello Browser, this is Netzapfel!";
+    var encodedResponse = Encoding.UTF8.GetBytes(response);
+    context.Response.ContentLength64 = encodedResponse.Length;
+    context.Response.OutputStream.Write(encodedResponse, 0, encodedResponse.Length);
+    context.Response.OutputStream.Close();
   }
 
 
