@@ -25,7 +25,7 @@ public class Router
     };
   }
 
-  public ResponsePacket? Route(string httpMethod, string path, Dictionary<string, string>? kvParams)
+  public ResponsePacket? Route(string httpMethod, string path, Dictionary<string, string>? kvParams = null)
   {
     string extention = Utils.SubstringAfterFirstIndex(path, '.');
     ExtensionInfo? extInfo = null;
@@ -71,7 +71,7 @@ public class Router
 
     if (fullPath == websitePath) // If nothing follows the domain name or IP, then default to loading index.html.
     {
-      response = Route("GET", "/index.html", null);
+      response = Route("GET", "/index.html");
     }
     else
     {

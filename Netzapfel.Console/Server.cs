@@ -37,10 +37,7 @@ public static class Server
 
   public static void Start(string websitePath)
   {
-    router = new Router
-    {
-      WebsitePath = websitePath
-    };
+    router = new Router(websitePath);
     StartListening(listener);
   }
 
