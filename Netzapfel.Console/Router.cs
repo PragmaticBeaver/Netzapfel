@@ -27,7 +27,7 @@ public class Router
 
   public ResponsePacket? Route(string httpMethod, string path, Dictionary<string, string>? kvParams = null)
   {
-    string extention = Utils.SubstringAfterFirstIndex(path, '.');
+    string extention = Utils.GetFileExtention(path);
     ExtensionInfo? extInfo = null;
     ResponsePacket? response = null;
 
@@ -41,7 +41,7 @@ public class Router
       }
 
       // Strip off leading '/' and reformat as with windows path separator.
-      string fullPath = Path.Combine(webPath, path);
+      string fullPath = Path.Join(webPath, path);
       response = extInfo.Loader(fullPath, extention, extInfo);
     }
 
@@ -67,7 +67,7 @@ public class Router
 
   private ResponsePacket PageLoader(string fullPath, string fileExtention, ExtensionInfo extInfo)
   {
-    ResponsePacket response = new ResponsePacket();
+    ResponsePacket? response = new ResponsePacket();
 
     if (fullPath == websitePath) // If nothing follows the domain name or IP, then default to loading index.html.
     {
@@ -82,11 +82,11 @@ public class Router
       }
 
       // Inject the "Pages" folder into the path
-      var index = websitePath.Length - 1;
-      fullPath = $"{websitePath}\\Pages{fullPath.Substring(index)}";
+      var index = websitePath.Length;
+      fullPath = Path.Join(websitePath, "Pages", fullPath[index..]);
       response = FileLoader(fullPath, fileExtention, extInfo);
     }
 
-    return response;
+    return response ?? new ResponsePacket();
   }
 }

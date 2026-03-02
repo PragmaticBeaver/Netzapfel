@@ -6,14 +6,22 @@ public static class Utils
   internal static string SubstringBeforeLastIndex(string value, char separator)
   {
     var index = value.LastIndexOf(separator);
-    var result = index > 0 ? value[..index] : value;
+    var result = index > -1 ? value[..index] : value;
     return result;
   }
 
   internal static string SubstringAfterFirstIndex(string value, char separator)
   {
     var index = value.IndexOf(separator);
-    var result = index > 0 ? value[index..] : value;
+    var result = index > -1 ? value[index..] : value;
+    return result;
+  }
+
+  internal static string GetFileExtention(string value)
+  {
+    var separator = '.';
+    var index = value.IndexOf(separator);
+    var result = index > -1 ? value[index..] : "";
     return result;
   }
 

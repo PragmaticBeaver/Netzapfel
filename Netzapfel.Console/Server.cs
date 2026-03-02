@@ -74,7 +74,7 @@ public static class Server
   {
     pairs ??= []; // compound assignment
 
-    if (data.Length <= 0)
+    if (data.Length <= 0 || !data.Contains('&'))
     {
       return pairs;
     }
