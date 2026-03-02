@@ -64,7 +64,7 @@ public static class Server
     return listener;
   }
 
-  private static void Log(HttpListenerRequest request)
+  private static void LogRequest(HttpListenerRequest request)
   {
     var logEntry = $"{request.RemoteEndPoint} {request.HttpMethod} /{request?.Url?.AbsoluteUri}";
     Console.WriteLine(logEntry);
@@ -94,33 +94,56 @@ public static class Server
     var context = await listener.GetContextAsync();
     // release semaphore which allows another listener to be initialized/started
     semaphore.Release();
-    Log(context.Request);
+    LogRequest(context.Request);
 
-    // var request = context.Request;
-    // var rawUrl = request.RawUrl ?? "";
-    // var path = SubstringBeforeLastIndex(rawUrl, '?');
-    // var method = request.HttpMethod ?? "";
-    // var paramString = SubstringAfterFirstIndex(rawUrl, '?');
-    // var kvParams = GetKeyValuePairs(paramString);
+    var request = context.Request;
+    var rawUrl = request.RawUrl ?? "";
+    var path = Utils.SubstringBeforeLastIndex(rawUrl, '?');
+    var method = request.HttpMethod ?? "";
+    var paramString = Utils.SubstringAfterFirstIndex(rawUrl, '?');
+    var kvParams = GetKeyValuePairs(paramString);
 
-    // router.Route(method, path, paramString);
+    var clientResponse = context.Response;
 
+    var packet = router?.Route(method, path, kvParams);
+    if (packet == null)
+    {
+      var errorText = "ERROR: unable to route";
+      Console.WriteLine(errorText);
+      RespondWithServerError(clientResponse, HttpStatusCode.InternalServerError, errorText);
+      return;
+    }
+    Respond(clientResponse, packet);
+  }
 
+  private static void Respond(HttpListenerResponse response, ResponsePacket packet)
+  {
+    response.ContentType = packet.ContentType;
+    response.ContentLength64 = packet.Data != null ? packet.Data.Length : 0;
+    response.ContentEncoding = packet.Encoding;
+    response.StatusCode = (int)HttpStatusCode.OK;
+    response.OutputStream.Write(packet.Data);
+    response.OutputStream.Close();
+  }
+
+  private static void RespondWithServerError(HttpListenerResponse clientResponse, HttpStatusCode errorCode, string error)
+  {
     string response = $@"
     <html>
       <head>
         <meta http-equiv='content-type' content='text/html; charset=utf-8'/>
       </ head>
       <body>
-        <p>Hello Browser, this is Netzapfel!</p>
+        <p>{error}</p>
       </body>
     </html>";
 
-    // var response = "Hello Browser, this is Netzapfel!";
     var encodedResponse = Encoding.UTF8.GetBytes(response);
-    context.Response.ContentLength64 = encodedResponse.Length;
-    context.Response.OutputStream.Write(encodedResponse, 0, encodedResponse.Length);
-    context.Response.OutputStream.Close();
+    clientResponse.ContentLength64 = encodedResponse.Length;
+    clientResponse.ContentEncoding = Encoding.UTF8;
+    clientResponse.StatusCode = (int)errorCode;
+    clientResponse.OutputStream.Write(encodedResponse);
+    clientResponse.OutputStream.Close();
   }
 
 
