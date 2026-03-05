@@ -4,7 +4,6 @@ using System;
 using System.Net;
 using System.Net.Sockets;
 using System.Reflection;
-using System.Text;
 
 public static class Server
 {
@@ -12,33 +11,32 @@ public static class Server
   private const int port = 8080;
   private static readonly Semaphore semaphore = new Semaphore(maxSimultaneousConnections, maxSimultaneousConnections);
   private static readonly HttpListener listener;
-  private static Router? router;
+  private static readonly Router router;
 
   static Server()
   {
+    router = new Router(GetWebsiteDir());
     var localIps = GetLocalIPs();
     listener = InitializeListener(localIps);
   }
 
-  public static string GetWebsiteDir()
+  public static void Start()
+  {
+    StartListening(listener);
+  }
+
+  private static string GetWebsiteDir()
   {
     var websitePath = Assembly.GetExecutingAssembly().Location;
     Console.WriteLine($"assembly-path: {websitePath}");
-    // get projekt root-dir
     var path = websitePath;
     for (int i = 0; i < 5; i++)
     {
-      path = Utils.SubstringBeforeLastIndex(path, '/');
+      path = Utils.SubstringBeforeLastIndex(path, '/'); // get projekt root-dir
     }
     Console.WriteLine($"root-dir: {path}");
 
     return $"{path}/Website";
-  }
-
-  public static void Start(string websitePath)
-  {
-    router = new Router(websitePath);
-    StartListening(listener);
   }
 
   private static List<IPAddress> GetLocalIPs()
@@ -102,17 +100,14 @@ public static class Server
     var method = request.HttpMethod ?? "";
     var paramString = Utils.SubstringAfterFirstIndex(rawUrl, '?');
     var kvParams = GetKeyValuePairs(paramString);
-
     var clientResponse = context.Response;
 
-    var packet = router?.Route(method, path, kvParams);
-    if (packet == null)
+    var packet = router.Route(method, path, kvParams);
+    if (packet.Error != ServerError.NoError)
     {
-      var errorText = "ERROR: unable to route";
-      Console.WriteLine(errorText);
-      RespondWithServerError(clientResponse, HttpStatusCode.InternalServerError, errorText);
-      return;
+      packet = router.Route("GET", HandleError(packet.Error));
     }
+
     Respond(clientResponse, packet);
   }
 
@@ -126,24 +121,19 @@ public static class Server
     response.OutputStream.Close();
   }
 
-  private static void RespondWithServerError(HttpListenerResponse clientResponse, HttpStatusCode errorCode, string error)
+  private static string HandleError(ServerError error)
   {
-    string response = $@"
-    <html>
-      <head>
-        <meta http-equiv='content-type' content='text/html; charset=utf-8'/>
-      </ head>
-      <body>
-        <p>{error}</p>
-      </body>
-    </html>";
-
-    var encodedResponse = Encoding.UTF8.GetBytes(response);
-    clientResponse.ContentLength64 = encodedResponse.Length;
-    clientResponse.ContentEncoding = Encoding.UTF8;
-    clientResponse.StatusCode = (int)errorCode;
-    clientResponse.OutputStream.Write(encodedResponse);
-    clientResponse.OutputStream.Close();
+    // switch expression; _ is the default path
+    string path = error switch
+    {
+      ServerError.FileNotFound => "/Error/fileNotFound.html",
+      ServerError.PageNotFound => "/Error/pageNotFound.html",
+      ServerError.UnknownType => "/Error/unknownType.html",
+      ServerError.SessionExpired => "/Error/expiredSession.html",
+      ServerError.NotAuthorized => "/Error/notAuthorized.html",
+      _ => "/Error/serverError.html",
+    };
+    return path;
   }
 
 

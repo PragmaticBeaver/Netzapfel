@@ -4,6 +4,7 @@ using System.Text;
 
 public class ResponsePacket
 {
+  public ServerError Error { get; set; }
   public string? Redirect { get; set; }
   public byte[]? Data { get; set; }
   public string? ContentType { get; set; }

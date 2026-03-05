@@ -25,7 +25,7 @@ public class Router
     };
   }
 
-  public ResponsePacket? Route(string httpMethod, string path, Dictionary<string, string>? kvParams = null)
+  public ResponsePacket Route(string httpMethod, string path, Dictionary<string, string>? kvParams = null)
   {
     string extention = Utils.GetFileExtention(path);
     ExtensionInfo? extInfo = null;
@@ -43,6 +43,13 @@ public class Router
       // Strip off leading '/' and reformat as with windows path separator.
       string fullPath = Path.Join(webPath, path);
       response = extInfo.Loader(fullPath, extention, extInfo);
+    }
+    else
+    {
+      response = new ResponsePacket()
+      {
+        Error = ServerError.UnknownType
+      };
     }
 
     return response;
@@ -67,7 +74,7 @@ public class Router
 
   private ResponsePacket PageLoader(string fullPath, string fileExtention, ExtensionInfo extInfo)
   {
-    ResponsePacket? response = new ResponsePacket();
+    var response = new ResponsePacket();
 
     if (fullPath == websitePath) // If nothing follows the domain name or IP, then default to loading index.html.
     {
@@ -87,6 +94,6 @@ public class Router
       response = FileLoader(fullPath, fileExtention, extInfo);
     }
 
-    return response ?? new ResponsePacket();
+    return response ?? new ResponsePacket() { Error = ServerError.InternalError };
   }
 }

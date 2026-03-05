@@ -3,7 +3,7 @@ using Netzapfel.Console;
 
 Console.WriteLine("Hello, World!");
 
-Server.Start(Server.GetWebsiteDir());
+Server.Start();
 Console.ReadLine();
 
 Console.WriteLine("Bye!");
