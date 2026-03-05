@@ -20,8 +20,8 @@ public static class Utils
   internal static string GetFileExtention(string value)
   {
     var separator = '.';
-    var index = value.IndexOf(separator);
-    var result = index > -1 ? value[index..] : "";
+    var index = value.LastIndexOf(separator);
+    var result = index > -1 ? value[(index + 1)..] : ""; // +1 to remove "." of file-extention
     return result;
   }
 

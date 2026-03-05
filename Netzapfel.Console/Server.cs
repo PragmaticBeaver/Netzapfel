@@ -153,7 +153,6 @@ public static class Server
     {
       semaphore.WaitOne();
       StartConnectionListener(listener);
-
     }
   }
 
