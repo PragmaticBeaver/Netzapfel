@@ -105,7 +105,7 @@ public static class Server
     var packet = router.Route(method, path, kvParams);
     if (packet.Error != ServerError.NoError)
     {
-      packet.Redirect = ErrorRedirect(packet.Error);
+      packet.Redirect = GetErrorRedirect(packet.Error);
     }
 
     Respond(request, clientResponse, packet);
@@ -129,7 +129,7 @@ public static class Server
     response.OutputStream.Close();
   }
 
-  private static string ErrorRedirect(ServerError error)
+  private static string GetErrorRedirect(ServerError error)
   {
     // switch expression; _ is the default path
     string path = error switch
