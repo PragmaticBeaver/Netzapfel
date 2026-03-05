@@ -105,23 +105,31 @@ public static class Server
     var packet = router.Route(method, path, kvParams);
     if (packet.Error != ServerError.NoError)
     {
-      packet = router.Route("GET", HandleError(packet.Error));
+      packet.Redirect = ErrorRedirect(packet.Error);
     }
 
-    Respond(clientResponse, packet);
+    Respond(request, clientResponse, packet);
   }
 
-  private static void Respond(HttpListenerResponse response, ResponsePacket packet)
+  private static void Respond(HttpListenerRequest request, HttpListenerResponse response, ResponsePacket packet)
   {
-    response.ContentType = packet.ContentType;
-    response.ContentLength64 = packet.Data != null ? packet.Data.Length : 0;
-    response.ContentEncoding = packet.Encoding;
-    response.StatusCode = (int)HttpStatusCode.OK;
-    response.OutputStream.Write(packet.Data);
+    if (String.IsNullOrEmpty(packet.Redirect))
+    {
+      response.ContentType = packet.ContentType;
+      response.ContentLength64 = packet.Data != null ? packet.Data.Length : 0;
+      response.ContentEncoding = packet.Encoding;
+      response.StatusCode = (int)HttpStatusCode.OK;
+      response.OutputStream.Write(packet.Data);
+    }
+    else
+    {
+      response.StatusCode = (int)HttpStatusCode.Redirect;
+      response.Redirect($"http://{request.UserHostAddress}{packet.Redirect}");
+    }
     response.OutputStream.Close();
   }
 
-  private static string HandleError(ServerError error)
+  private static string ErrorRedirect(ServerError error)
   {
     // switch expression; _ is the default path
     string path = error switch

@@ -1,6 +1,7 @@
 namespace Netzapfel.Console;
 
 using System;
+using System.Runtime.InteropServices;
 using System.Text;
 
 public class Router
@@ -57,6 +58,11 @@ public class Router
 
   private ResponsePacket ImageLoader(string fullPath, string fileExtention, ExtensionInfo extInfo)
   {
+    if (!File.Exists(fullPath))
+    {
+      Console.WriteLine($"Error; Image not found: {fullPath}");
+      return new ResponsePacket() { Error = ServerError.FileNotFound };
+    }
     FileStream stream = new FileStream(fullPath, FileMode.Open, FileAccess.Read);
     BinaryReader reader = new BinaryReader(stream);
     ResponsePacket response = new ResponsePacket() { Data = reader.ReadBytes((int)stream.Length), ContentType = extInfo.ContentType };
@@ -67,6 +73,11 @@ public class Router
 
   private ResponsePacket FileLoader(string fullPath, string fileExtention, ExtensionInfo extInfo)
   {
+    if (!File.Exists(fullPath))
+    {
+      Console.WriteLine($"Error; File not found: {fullPath}");
+      return new ResponsePacket() { Error = ServerError.FileNotFound };
+    }
     string text = File.ReadAllText(fullPath);
     ResponsePacket response = new ResponsePacket() { Data = Encoding.UTF8.GetBytes(text), ContentType = extInfo.ContentType, Encoding = Encoding.UTF8 };
     return response;
@@ -91,9 +102,15 @@ public class Router
       // Inject the "Pages" folder into the path
       var index = websitePath.Length;
       fullPath = Path.Join(websitePath, "Pages", fullPath[index..]);
+
+      if (!File.Exists(fullPath))
+      {
+        Console.WriteLine($"Error; Page not found: {fullPath}");
+        return new ResponsePacket() { Error = ServerError.PageNotFound };
+      }
       response = FileLoader(fullPath, fileExtention, extInfo);
     }
 
-    return response ?? new ResponsePacket() { Error = ServerError.InternalError };
+    return response;
   }
 }
